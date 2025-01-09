@@ -10,21 +10,20 @@ export enum FetchRequestType {
 const getResponseData = async (response: Response): Promise<unknown> => {
   const contentType = response.headers.get("content-type") || "";
 
-  if (contentType.includes("application/json")) {
-    return response.json();
+  const typeHandlers: Record<string, () => Promise<unknown>> = {
+    "application/json": () => response.json(),
+    "text/": () => response.text(),
+    "image/": () => response.blob(),
+    "application/octet-stream": () => response.blob(),
+    "multipart/form-data": () => response.formData(),
+  };
+
+  for (const [type, handler] of Object.entries(typeHandlers)) {
+    if (contentType.includes(type)) {
+      return handler();
+    }
   }
-  if (contentType.includes("text/")) {
-    return response.text();
-  }
-  if (
-    contentType.includes("image/") ||
-    contentType.includes("application/octet-stream")
-  ) {
-    return response.blob();
-  }
-  if (contentType.includes("multipart/form-data")) {
-    return response.formData();
-  }
+
   return response.arrayBuffer();
 };
 
